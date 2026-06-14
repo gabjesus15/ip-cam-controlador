@@ -1,0 +1,13 @@
+# Configuración del Proxy local para cam-reverse (iLnkP2P)
+server:
+  port: 5000
+  host: 0.0.0.0
+
+cameras:
+  - id: x5
+    name: "Mini Cámara X5"
+    ip: "192.168.1.99" # Cambia esto por la IP local de tu cámara
+    port: 32108        # Puerto UDP por defecto para iLnkP2P
+    # credentials:
+    #   username: "admin"
+    #   password: ""

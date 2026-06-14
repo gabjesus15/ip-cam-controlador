@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,325 +8,318 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Switch,
-  Animated,
+  SafeAreaView,
+  KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
-import useCameraStore from '../utils/cameraStore';
+import { COLORS, SPACING, SIZES, TYPOGRAPHY, SHADOWS } from '../theme';
+import useCameraStore from '../store/cameraStore';
 import useMicroInteractions from '../hooks/useMicroInteractions';
+import { CAMERA_PROFILES, getPathsForProfile } from '../services/cameraProfiles';
 
-const COLORS = {
-  bg: '#0a0a0a',
-  surface: '#141414',
-  border: '#222',
-  text: '#fff',
-  textSecondary: '#888',
-  accent: '#00d4ff',
-  accentLight: '#00d4ff22',
-  online: '#00ff88',
-  offline: '#ff4444',
-};
+export const AddCameraScreen = ({ navigation }) => {
+  // Global State
+  const addCamera = useCameraStore((state) => state.addCamera);
+  const cameras = useCameraStore((state) => state.cameras);
 
-const AddCameraScreen = ({ route, navigation }) => {
-  const { addCamera, scanNetwork } = useCameraStore();
+  // Hooks
   const microInteractions = useMicroInteractions();
-  const { foundCameras } = route.params || {};
-  
+
+  // Form Fields State
   const [name, setName] = useState('');
   const [ip, setIp] = useState('');
-  const [port, setPort] = useState('8080');
+  const [port, setPort] = useState('80');
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('');
   const [url, setUrl] = useState('');
-  const [autoDetect, setAutoDetect] = useState(true);
-  const [loading, setLoading] = useState(false);
-  const [scanning, setScanning] = useState(false);
-  const [discovered, setDiscovered] = useState(foundCameras || []);
   const [selectedType, setSelectedType] = useState('generic');
 
-  const cameraTypes = [
-    { id: 'generic', name: 'Genérica', icon: 'video' },
-    { id: 'onvif', name: 'ONVIF', icon: 'broadcast-tower' },
-    { id: 'hikvision', name: 'Hikvision', icon: 'shield-alt' },
-    { id: 'dahua', name: 'Dahua', icon: 'lock' },
-  ];
+  // Test Connection State
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState(null); // 'success' | 'failed' | null
+  const [saving, setSaving] = useState(false);
 
-  const handleAutoDetect = () => {
-    if (ip && port) {
-      const detectedUrl = `http://${ip}:${port}/video`;
-      setUrl(detectedUrl);
-      microInteractions.vibrate();
+  // Auto detect URL on IP, Port, Type changes
+  useEffect(() => {
+    if (ip) {
+      const paths = getPathsForProfile(selectedType, ip, port || '80');
+      // Set the first stream path as default url
+      if (paths.streamUrls && paths.streamUrls.length > 0) {
+        setUrl(paths.streamUrls[0]);
+      }
+    } else {
+      setUrl('');
+    }
+  }, [ip, port, selectedType]);
+
+  const validateInputs = () => {
+    // 1. Check required fields
+    if (!name.trim()) {
+      Alert.alert('Faltan campos', 'Por favor ingresa un nombre para identificar la cámara.');
+      return false;
+    }
+    if (!ip.trim()) {
+      Alert.alert('Faltan campos', 'Por favor ingresa el Host o dirección IP de la cámara.');
+      return false;
+    }
+
+    // 2. Validate IP / Domain address format
+    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+    const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9](?:\.[a-zA-Z]{2,})+$/;
+    if (!ipRegex.test(ip) && !domainRegex.test(ip) && ip !== 'localhost') {
+      Alert.alert('IP Inválida', 'Por favor ingresa una dirección IPv4 o nombre de host válido.');
+      return false;
+    }
+
+    // 3. Validate Port
+    const portNum = parseInt(port, 10);
+    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+      Alert.alert('Puerto Inválido', 'El puerto debe ser un número entero entre 1 y 65535.');
+      return false;
+    }
+
+    // 4. Validate URL
+    if (!url.trim()) {
+      Alert.alert('Faltan campos', 'Por favor ingresa la URL del stream de video.');
+      return false;
+    }
+
+    // 5. Check duplicate IP:Port
+    if (cameras.some((c) => c.ip === ip && c.port === port)) {
+      Alert.alert('Cámara Duplicada', 'Ya existe una cámara configurada con esta misma dirección IP y puerto.');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleTestConnection = async () => {
+    if (!ip || !port || !url) {
+      Alert.alert('Faltan datos', 'Completa la IP, el puerto y la URL del stream para realizar el test.');
+      return;
+    }
+
+    setTesting(true);
+    setTestResult(null);
+    microInteractions.vibrate();
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+      const response = await fetch(url, {
+        method: 'HEAD',
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (response.ok || response.status === 401) {
+        setTestResult('success');
+      } else {
+        setTestResult('failed');
+      }
+    } catch {
+      setTestResult('failed');
+    } finally {
+      setTesting(false);
     }
   };
 
-  const handleAdd = async () => {
-    if (!name || !ip || !port) {
-      Alert.alert('Error', 'Por favor completa los campos requeridos');
+  const handleSave = async () => {
+    if (!validateInputs()) {
       microInteractions.shake();
       return;
     }
 
-    setLoading(true);
+    setSaving(true);
+    microInteractions.vibrate();
+
     try {
-      const cameraUrl = url || `http://${ip}:${port}/video`;
+      const paths = getPathsForProfile(selectedType, ip, port);
+      const snapshotUrl = paths.snapshotUrls && paths.snapshotUrls.length > 0 ? paths.snapshotUrls[0] : url;
+
       await addCamera({
-        name,
-        ip,
-        port,
-        username,
+        name: name.trim(),
+        ip: ip.trim(),
+        port: port.trim(),
+        username: username.trim(),
         password,
-        url: cameraUrl,
+        url: url.trim(),
+        snapshotUrl: snapshotUrl.trim(),
         type: selectedType,
         onvif: selectedType === 'onvif',
       });
-      Alert.alert('Éxito', 'Cámara agregada correctamente', [
-        { text: 'OK', onPress: () => navigation.goBack() }
+
+      Alert.alert('Cámara Agregada', 'La cámara se ha guardado exitosamente en tus dispositivos.', [
+        { text: 'Aceptar', onPress: () => navigation.goBack() },
       ]);
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo agregar la cámara');
+    } catch {
+      Alert.alert('Error', 'No se pudo guardar la cámara. Inténtalo de nuevo.');
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
-  };
-
-  const handleScan = async () => {
-    setScanning(true);
-    microInteractions.vibrate();
-    try {
-      const found = await scanNetwork();
-      setDiscovered(found);
-      if (found.length === 0) {
-        Alert.alert('Sin resultados', 'No se encontraron cámaras en la red');
-      } else {
-        microInteractions.pulse();
-      }
-    } catch (error) {
-      Alert.alert('Error', 'No se pudo completar el escaneo');
-    } finally {
-      setScanning(false);
-    }
-  };
-
-  const selectDiscovered = (camera) => {
-    setName(camera.name);
-    setIp(camera.ip);
-    setPort(camera.port);
-    setUrl(camera.url);
-    setSelectedType(camera.type || 'generic');
-    setDiscovered([]);
-    microInteractions.vibrate();
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Camera Type Selector */}
-      <View style={styles.typeSection}>
-        <Text style={styles.sectionTitle}>Tipo de Cámara</Text>
-        <View style={styles.typeContainer}>
-          {cameraTypes.map((type) => (
-            <TouchableOpacity
-              key={type.id}
-              style={[
-                styles.typeButton,
-                selectedType === type.id && styles.typeButtonActive,
-              ]}
-              onPress={() => {
-                setSelectedType(type.id);
-                microInteractions.vibrate();
-              }}
-              activeOpacity={0.7}
-              onPressIn={microInteractions.pressIn}
-              onPressOut={microInteractions.pressOut}
-            >
-              <FontAwesome5
-                name={type.icon}
-                size={18}
-                color={selectedType === type.id ? COLORS.bg : COLORS.accent}
+    <SafeAreaView style={styles.container}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+          
+          {/* Brand/Profile Type Selector */}
+          <Text style={styles.sectionTitle}>Perfil de la Cámara</Text>
+          <View style={styles.brandSelectorRow}>
+            {Object.keys(CAMERA_PROFILES).map((brandKey) => {
+              const brand = CAMERA_PROFILES[brandKey];
+              const isActive = selectedType === brandKey;
+              return (
+                <TouchableOpacity
+                  key={brandKey}
+                  style={[styles.brandCard, isActive && styles.brandCardActive]}
+                  onPress={() => {
+                    microInteractions.vibrate();
+                    setSelectedType(brandKey);
+                  }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[styles.brandCardText, isActive && styles.brandCardTextActive]}>
+                    {brand.name}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          {/* Form Fields */}
+          <Text style={[styles.sectionTitle, { marginTop: SPACING.md }]}>Configuración de Red</Text>
+          
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Nombre Identificador *</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Ej. Cámara Cochera, Entrada Principal..."
+              placeholderTextColor={COLORS.textMuted}
+              value={name}
+              onChangeText={setName}
+            />
+          </View>
+
+          <View style={styles.row}>
+            <View style={[styles.formGroup, { flex: 2, marginRight: SPACING.sm }]}>
+              <Text style={styles.label}>Dirección IP / Host *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ej. 192.168.1.100"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+                value={ip}
+                onChangeText={setIp}
               />
-              <Text
-                style={[
-                  styles.typeText,
-                  selectedType === type.id && styles.typeTextActive,
-                ]}
-              >
-                {type.name}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
+            </View>
+            <View style={[styles.formGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Puerto *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="Ej. 80, 8080"
+                placeholderTextColor={COLORS.textMuted}
+                keyboardType="numeric"
+                value={port}
+                onChangeText={setPort}
+              />
+            </View>
+          </View>
 
-      {/* Discovered Cameras */}
-      {discovered.length > 0 && (
-        <View style={styles.discoveredSection}>
-          <Text style={styles.sectionTitle}>Cámaras Encontradas</Text>
-          {discovered.map((camera) => (
+          <View style={styles.row}>
+            <View style={[styles.formGroup, { flex: 1, marginRight: SPACING.sm }]}>
+              <Text style={styles.label}>Usuario (opcional)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="admin"
+                placeholderTextColor={COLORS.textMuted}
+                value={username}
+                onChangeText={setUsername}
+              />
+            </View>
+            <View style={[styles.formGroup, { flex: 1 }]}>
+              <Text style={styles.label}>Contraseña (opcional)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                placeholderTextColor={COLORS.textMuted}
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>URL RTSP o HTTP MJPEG (Autocompletado)</Text>
+            <TextInput
+              style={[styles.input, styles.urlInput]}
+              placeholder="Ej. http://192.168.1.100:8080/video"
+              placeholderTextColor={COLORS.textMuted}
+              value={url}
+              onChangeText={setUrl}
+              multiline
+              numberOfLines={2}
+            />
+          </View>
+
+          {/* Test connection row */}
+          <View style={styles.testRow}>
             <TouchableOpacity
-              key={camera.id}
-              style={styles.discoveredItem}
-              onPress={() => selectDiscovered(camera)}
-              activeOpacity={0.7}
-              onPressIn={microInteractions.pressIn}
-              onPressOut={microInteractions.pressOut}
+              style={styles.testBtn}
+              onPress={handleTestConnection}
+              disabled={testing}
+              activeOpacity={0.8}
             >
-              <View style={styles.discoveredIcon}>
-                <FontAwesome5 name="video" size={18} color={COLORS.accent} />
-              </View>
-              <View style={styles.discoveredInfo}>
-                <Text style={styles.discoveredName}>{camera.name}</Text>
-                <Text style={styles.discoveredIp}>{camera.ip}:{camera.port}</Text>
-                {camera.onvif && (
-                  <View style={styles.onvifBadge}>
-                    <Text style={styles.onvifText}>ONVIF</Text>
-                  </View>
-                )}
-              </View>
-              <FontAwesome5 name="check" size={14} color={COLORS.online} />
+              {testing ? (
+                <ActivityIndicator size="small" color={COLORS.accent} />
+              ) : (
+                <>
+                  <FontAwesome5 name="signal" size={12} color={COLORS.accent} style={{ marginRight: 6 }} />
+                  <Text style={styles.testBtnText}>Probar Conectividad</Text>
+                </>
+              )}
             </TouchableOpacity>
-          ))}
-        </View>
-      )}
 
-      {/* Form */}
-      <View style={styles.formSection}>
-        <Text style={styles.sectionTitle}>Configuración</Text>
-        
-        <View style={styles.inputGroup}>
-          <Text style={styles.inputLabel}>Nombre *</Text>
-          <TextInput
-            style={[styles.input, { color: '#fff' }]}
-            value={name}
-            onChangeText={setName}
-            placeholder="Ej: Cámara Principal"
-            placeholderTextColor="#666"
-          />
-        </View>
+            {testResult === 'success' && (
+              <View style={styles.testSuccessBadge}>
+                <FontAwesome5 name="check-circle" size={12} color={COLORS.online} style={{ marginRight: 4 }} />
+                <Text style={styles.testSuccessText}>Conexión Exitosa</Text>
+              </View>
+            )}
 
-        <View style={styles.inputRow}>
-          <View style={[styles.inputGroup, { flex: 2, marginRight: 12 }]}>
-            <Text style={styles.inputLabel}>Dirección IP *</Text>
-            <TextInput
-              style={[styles.input, { color: '#fff' }]}
-              value={ip}
-              onChangeText={setIp}
-              placeholder="192.168.1.100"
-              placeholderTextColor="#666"
-              keyboardType="numeric"
-              autoCapitalize="none"
-            />
+            {testResult === 'failed' && (
+              <View style={styles.testFailedBadge}>
+                <FontAwesome5 name="times-circle" size={12} color={COLORS.offline} style={{ marginRight: 4 }} />
+                <Text style={styles.testFailedText}>Sin Conexión</Text>
+              </View>
+            )}
           </View>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.inputLabel}>Puerto *</Text>
-            <TextInput
-              style={[styles.input, { color: '#fff' }]}
-              value={port}
-              onChangeText={setPort}
-              placeholder="8080"
-              placeholderTextColor="#666"
-              keyboardType="numeric"
-            />
-          </View>
-        </View>
 
-        <View style={styles.inputRow}>
-          <View style={[styles.inputGroup, { flex: 1, marginRight: 12 }]}>
-            <Text style={styles.inputLabel}>Usuario</Text>
-            <TextInput
-              style={[styles.input, { color: '#fff' }]}
-              value={username}
-              onChangeText={setUsername}
-              placeholder="admin"
-              placeholderTextColor="#666"
-              autoCapitalize="none"
-            />
-          </View>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.inputLabel}>Contraseña</Text>
-            <TextInput
-              style={[styles.input, { color: '#fff' }]}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="******"
-              placeholderTextColor="#666"
-              secureTextEntry
-            />
-          </View>
-        </View>
+          {/* Save Button */}
+          <TouchableOpacity
+            style={styles.saveBtn}
+            onPress={handleSave}
+            disabled={saving}
+            activeOpacity={0.8}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color="#ffffff" />
+            ) : (
+              <Text style={styles.saveBtnText}>Guardar Dispositivo</Text>
+            )}
+          </TouchableOpacity>
 
-        <View style={styles.inputGroup}>
-          <View style={styles.urlHeader}>
-            <Text style={styles.inputLabel}>URL de Video</Text>
-            <Switch
-              value={autoDetect}
-              onValueChange={setAutoDetect}
-              trackColor={{ false: COLORS.border, true: COLORS.accent }}
-              thumbColor={autoDetect ? COLORS.text : COLORS.textSecondary}
-            />
-          </View>
-          <TextInput
-            style={[styles.input, { color: '#fff' }]}
-            value={url}
-            onChangeText={setUrl}
-            placeholder="http://192.168.1.100:8080/video"
-            placeholderTextColor="#666"
-            autoCapitalize="none"
-            editable={!autoDetect}
-          />
-          {autoDetect && (
-            <TouchableOpacity 
-              style={styles.detectBtn} 
-              onPress={handleAutoDetect}
-              activeOpacity={0.7}
-              onPressIn={microInteractions.pressIn}
-              onPressOut={microInteractions.pressOut}
-            >
-              <FontAwesome5 name="magic" size={12} color={COLORS.accent} />
-              <Text style={styles.detectBtnText}>Auto-detectar URL</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </View>
-
-      {/* Actions */}
-      <View style={styles.actions}>
-        <TouchableOpacity 
-          style={styles.scanBtn} 
-          onPress={handleScan} 
-          disabled={scanning}
-          activeOpacity={0.7}
-          onPressIn={microInteractions.pressIn}
-          onPressOut={microInteractions.pressOut}
-        >
-          {scanning ? (
-            <ActivityIndicator color={COLORS.accent} />
-          ) : (
-            <>
-              <FontAwesome5 name="search" size={14} color={COLORS.accent} />
-              <Text style={styles.scanBtnText}>Escanear Red</Text>
-            </>
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.addBtn} 
-          onPress={handleAdd} 
-          disabled={loading}
-          activeOpacity={0.7}
-          onPressIn={microInteractions.pressIn}
-          onPressOut={microInteractions.pressOut}
-        >
-          {loading ? (
-            <ActivityIndicator color={COLORS.bg} />
-          ) : (
-            <>
-              <FontAwesome5 name="plus" size={16} color={COLORS.bg} />
-              <Text style={styles.addBtnText}>Agregar Cámara</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-    </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -335,194 +328,127 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bg,
   },
-  typeSection: {
-    padding: 16,
-    backgroundColor: COLORS.surface,
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginBottom: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-    fontWeight: '600',
-  },
-  typeContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  typeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.bg,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    minWidth: 100,
-    ...Platform.select({
-      web: {
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-      },
-    }),
-  },
-  typeButtonActive: {
-    backgroundColor: COLORS.accent,
-    borderColor: COLORS.accent,
-  },
-  typeText: {
-    color: COLORS.accent,
-    fontSize: 13,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  typeTextActive: {
-    color: COLORS.bg,
-  },
-  discoveredSection: {
-    padding: 16,
-    backgroundColor: COLORS.surface,
-    marginBottom: 8,
-  },
-  discoveredItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.bg,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    ...Platform.select({
-      web: {
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-      },
-    }),
-  },
-  discoveredIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    backgroundColor: COLORS.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  discoveredInfo: {
+  scroll: {
     flex: 1,
   },
-  discoveredName: {
-    fontSize: 14,
-    fontWeight: '600',
+  content: {
+    padding: SPACING.md,
+    paddingBottom: SPACING.xxl,
+  },
+  sectionTitle: {
+    fontSize: TYPOGRAPHY.sizes.md,
+    fontWeight: TYPOGRAPHY.weights.bold,
     color: COLORS.text,
+    marginBottom: SPACING.sm,
   },
-  discoveredIp: {
-    fontSize: 12,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  onvifBadge: {
-    backgroundColor: COLORS.accentLight,
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    alignSelf: 'flex-start',
-    marginTop: 4,
-  },
-  onvifText: {
-    fontSize: 10,
-    color: COLORS.accent,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-  formSection: {
-    padding: 16,
-    backgroundColor: COLORS.surface,
-  },
-  inputGroup: {
-    marginBottom: 16,
-  },
-  inputRow: {
+  brandSelectorRow: {
     flexDirection: 'row',
-    marginBottom: 16,
+    flexWrap: 'wrap',
+    marginBottom: SPACING.md,
   },
-  inputLabel: {
-    fontSize: 12,
+  brandCard: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: SIZES.radiusSm,
+    marginRight: SPACING.sm,
+    marginBottom: SPACING.sm,
+  },
+  brandCardActive: {
+    backgroundColor: COLORS.accentLight,
+    borderColor: COLORS.accent,
+  },
+  brandCardText: {
+    fontSize: TYPOGRAPHY.sizes.xs,
     color: COLORS.textSecondary,
-    marginBottom: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    fontWeight: '600',
+    fontWeight: TYPOGRAPHY.weights.semibold,
+  },
+  brandCardTextActive: {
+    color: COLORS.accent,
+  },
+  formGroup: {
+    marginBottom: SPACING.md,
+  },
+  row: {
+    flexDirection: 'row',
+    marginBottom: SPACING.xs,
+  },
+  label: {
+    fontSize: TYPOGRAPHY.sizes.xs,
+    color: COLORS.textSecondary,
+    fontWeight: TYPOGRAPHY.weights.medium,
+    marginBottom: 6,
   },
   input: {
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 14,
-    backgroundColor: '#000',
-    color: '#fff',
-    ...Platform.select({
-      web: {
-        outlineStyle: 'none',
-        color: '#fff',
-      },
-    }),
-  },
-  urlHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  detectBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    padding: 8,
-  },
-  detectBtnText: {
-    fontSize: 13,
-    color: COLORS.accent,
-    marginLeft: 8,
-  },
-  actions: {
-    padding: 16,
-  },
-  scanBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 14,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
     backgroundColor: COLORS.surface,
-    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: SIZES.radiusMd,
+    paddingHorizontal: SPACING.md,
+    height: 46,
+    color: COLORS.text,
+    fontSize: TYPOGRAPHY.sizes.md,
   },
-  scanBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.accent,
-    marginLeft: 8,
+  urlInput: {
+    height: 60,
+    paddingTop: SPACING.sm,
+    paddingBottom: SPACING.sm,
+    textAlignVertical: 'top',
   },
-  addBtn: {
+  testRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: COLORS.accent,
+    marginBottom: SPACING.xl,
   },
-  addBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: COLORS.bg,
-    marginLeft: 8,
+  testBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: SIZES.radiusRound,
+  },
+  testBtnText: {
+    color: COLORS.accent,
+    fontSize: TYPOGRAPHY.sizes.xs,
+    fontWeight: TYPOGRAPHY.weights.semibold,
+  },
+  testSuccessBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: SPACING.md,
+  },
+  testSuccessText: {
+    color: COLORS.online,
+    fontSize: TYPOGRAPHY.sizes.xs,
+    fontWeight: TYPOGRAPHY.weights.bold,
+  },
+  testFailedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: SPACING.md,
+  },
+  testFailedText: {
+    color: COLORS.offline,
+    fontSize: TYPOGRAPHY.sizes.xs,
+    fontWeight: TYPOGRAPHY.weights.bold,
+  },
+  saveBtn: {
+    backgroundColor: COLORS.accent,
+    height: 50,
+    borderRadius: SIZES.radiusRound,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOWS.md,
+  },
+  saveBtnText: {
+    color: '#ffffff',
+    fontSize: TYPOGRAPHY.sizes.md,
+    fontWeight: TYPOGRAPHY.weights.bold,
   },
 });
 

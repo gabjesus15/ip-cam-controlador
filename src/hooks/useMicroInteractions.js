@@ -1,5 +1,5 @@
 import { useRef, useCallback } from 'react';
-import { Animated, Easing, Platform } from 'react-native';
+import { Animated, Easing, Platform, Vibration } from 'react-native';
 
 /**
  * Hook for micro-interactions and animations
@@ -65,8 +65,9 @@ export const useMicroInteractions = () => {
   }, [opacityAnim]);
 
   const slideIn = useCallback((direction = 'right', duration = 300) => {
-    const toValue = direction === 'right' ? 0 : direction === 'left' ? 0 : 0;
-    const fromValue = direction === 'right' ? 100 : direction === 'left' ? -100 : 0;
+    // Corrected the logic so toValue makes sense and matches direction
+    const toValue = 0;
+    const fromValue = direction === 'right' ? 100 : direction === 'left' ? -100 : 50;
     
     translateAnim.setValue(fromValue);
     Animated.timing(translateAnim, {
@@ -127,8 +128,6 @@ export const useMicroInteractions = () => {
         navigator.vibrate(50);
       }
     } else {
-      // React Native vibration
-      const { Vibration } = require('react-native');
       Vibration.vibrate(50);
     }
   }, []);

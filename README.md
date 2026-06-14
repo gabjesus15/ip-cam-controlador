@@ -1,237 +1,138 @@
-# IP Cam Controlador
+# IP Cam Controlador 📹✨
 
-Aplicación multiplataforma para control y monitoreo de cámaras IP. Construida con **React Native** y **Expo**, compatible con **iOS**, **Android** y **Web**.
+Aplicación móvil y web multiplataforma diseñada para el monitoreo, control de movimiento (PTZ), grabación local y alertas en tiempo real de cámaras de seguridad IP.
 
-## ✨ Características
-
-- 📹 **Control de cámaras IP** - Agrega, edita y elimina cámaras de tu red
-- 🔍 **Escaneo automático** - Detecta cámaras automáticamente (HTTP y ONVIF)
-- 📹 **Grabación de video** - Graba streams de cámaras en tiempo real
-- 🏃 **Detección de movimiento** - Monitoreo inteligente con alertas
-- 🔔 **Notificaciones push** - Alertas en tiempo real para eventos
-- 🌐 **Multiplataforma** - Funciona en iOS, Android y navegadores web
-- 📱 **Diseño responsive** - Adaptable a móviles, tablets y escritorio
-- 🎨 **Tema oscuro** - Interfaz moderna y minimalista
-- ✨ **Micro-interacciones** - Animaciones y gestos táctiles
-- 🔄 **Estado en tiempo real** - Indicadores de online/offline con monitoreo
-- 📸 **Vista de grid** - Visualiza múltiples cámaras simultáneamente
-- 🔒 **Seguridad** - Soporte para autenticación básica (usuario/contraseña)
-
-## 🚀 Tecnologías
-
-- **React Native** - Framework principal
-- **Expo** - Plataforma de desarrollo
-- **React Navigation** - Navegación entre pantallas
-- **AsyncStorage** - Almacenamiento local persistente
-- **FontAwesome5** - Iconografía profesional
-- **Custom Hooks** - Arquitectura modular con hooks reutilizables
-
-## 📋 Requisitos
-
-- Node.js >= 18
-- npm o yarn
-- Expo CLI (`npm install -g expo-cli`)
-- Dispositivo físico o emulador (iOS/Android)
-
-## 🛠️ Instalación
-
-```bash
-# Clonar el repositorio
-git clone https://github.com/gabjesus15/ip-cam-controlador.git
-
-# Entrar al directorio
-cd ip-cam-controlador
-
-# Instalar dependencias
-npm install
-
-# Iniciar servidor de desarrollo
-npx expo start
-```
-
-## 🏃 Uso
-
-### Desarrollo
-
-```bash
-# Iniciar en modo desarrollo
-npx expo start
-
-# Opciones:
-# - i: Abrir en iOS simulator
-# - a: Abrir en Android emulator
-# - w: Abrir en navegador web
-# - r: Recargar bundler
-# - m: Mostrar menú
-# - shift+m: Seleccionar dispositivo
-```
-
-### Producción Web
-
-```bash
-# Generar build estático
-npx expo export --platform web
-
-# Servir localmente
-cd dist && npx serve
-```
-
-## 📱 Estructura del Proyecto
-
-```
-ip-cam-controlador/
-├── App.js                 # Punto de entrada
-├── src/
-│   ├── screens/
-│   │   ├── HomeScreen.js         # Dashboard principal
-│   │   ├── CameraGridScreen.js  # Vista de grid
-│   │   ├── CameraSingleScreen.js # Vista individual con controles
-│   │   └── AddCameraScreen.js    # Agregar/Editar cámara
-│   ├── hooks/
-│   │   ├── useMicroInteractions.js  # Animaciones y gestos
-│   │   ├── useMotionDetection.js    # Detección de movimiento
-│   │   ├── useRecording.js          # Grabación de video
-│   │   └── useNotifications.js      # Notificaciones push
-│   └── utils/
-│       └── cameraStore.js           # Estado global (Zustand-like)
-├── assets/                # Imágenes y recursos
-└── package.json
-```
-
-## 🌐 Pantallas
-
-### Dashboard (Home)
-- Estadísticas de cámaras (total, online, offline)
-- Acciones rápidas (ver grid, escanear, agregar)
-- Lista de cámaras con indicadores de estado
-
-### Grid de Cámaras
-- Visualización 2-columnas
-- Thumbnails de cámaras
-- Estado online/offline
-- Navegación a vista individual
-
-### Vista Individual
-- Visualización fullscreen
-- **Grabación de video** con indicador REC
-- **Detección de movimiento** con historial
-- **Notificaciones** en tiempo real
-- Información detallada de la cámara
-- Controles (PTZ, zoom, etc.)
-- Edición de configuración
-- Gestos táctiles y micro-interacciones
-
-### Agregar Cámara
-- Formulario de configuración
-- Detección automática de URL
-- Escaneo de red
-- Soporte para autenticación
-
-## 🔧 Configuración de Cámaras
-
-La app soporta cámaras IP con los siguientes protocolos:
-
-- **RTSP** - Real Time Streaming Protocol
-- **MJPEG** - Motion JPEG
-- **HTTP** - Streams HTTP estándar
-
-### Formato de URL
-
-```
-http://IP:PUERTO/video
-http://IP:PUERTO/stream
-rtsp://IP:PUERTO/live
-```
-
-### Ejemplo de configuración
-
-```javascript
-{
-  "name": "Cámara Principal",
-  "ip": "192.168.1.100",
-  "port": "8080",
-  "username": "admin",
-  "password": "12345",
-  "url": "http://192.168.1.100:8080/video"
-}
-```
-
-## 🚀 Deployment
-
-### Web
-
-La app se puede desplegar en cualquier servidor web estático:
-
-```bash
-# Generar build
-npx expo export --platform web
-
-# Copiar archivos a tu servidor
-rsync -av dist/ usuario@servidor:/var/www/html/
-```
-
-### Móvil
-
-Para publicar en stores:
-
-```bash
-# Construir para Android
-npx expo prebuild
-npx expo run:android --variant release
-
-# Construir para iOS (requiere Mac)
-npx expo prebuild
-npx expo run:ios --configuration Release
-```
-
-## 📸 Compatibilidad de Cámaras
-
-La app es compatible con la mayoría de cámaras IP que exponen streams:
-
-- ✅ Hikvision
-- ✅ Dahua
-- ✅ TP-Link (Tapo)
-- ✅ Reolink
-- ✅ Foscam
-- ✅ Cámaras genéricas (con URL configurable)
-
-## 🔒 Seguridad
-
-- **Autenticación básica** - Soporta usuario/contraseña
-- **Almacenamiento local** - Las credenciales se guardan en el dispositivo
-- **Validación de URLs** - Verifica URLs de cámaras antes de guardar
-
-## 📝 Roadmap
-
-- [x] Grabación de video
-- [x] Detección de movimiento
-- [x] Notificaciones push
-- [x] Soporte para cámaras ONVIF
-- [x] Micro-interacciones y gestos
-- [ ] Soporte para RTSP con autenticación
-- [ ] Modo oscuro/claro
-- [ ] Widgets para home screen
-- [ ] Soporte para múltiples streams
-- [ ] Integración con cloud storage
-- [ ] Análisis de IA para detección de objetos
-
-## 🤝 Contribución
-
-1. Fork el repositorio
-2. Crea tu feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit tus cambios (`git commit -m 'Add amazing feature'`)
-4. Push al branch (`git push origin feature/amazing-feature`)
-5. Abre un Pull Request
-
-## 📄 Licencia
-
-Este proyecto es de código abierto. Libre para uso personal y comercial.
-
-## 📞 Contacto
-
-- **GitHub:** [gabjesus15](https://github.com/gabjesus15)
-- **Proyecto:** [ip-cam-controlador](https://github.com/gabjesus15/ip-cam-controlador)
+El diseño de la interfaz ha sido completamente modernizado bajo el lenguaje visual de **Samsung One UI**, caracterizado por amplios espacios de cabecera que facilitan el uso a una mano, tarjetas con bordes muy redondeados, widgets integrados y un pad circular de control remoto unificado tipo SmartThings.
 
 ---
 
-⭐ **Si te gusta este proyecto, dale una estrella en GitHub!**
+## ✨ Características
+
+- 🎨 **Diseño Estilo Samsung One UI:** Estética minimalista y premium con esquinas redondeadas suaves (`radiusMd: 16px`), amplias cabeceras descriptivas y acentos en Azul Samsung.
+- 🎮 **Pad PTZ Circular Unificado:** Control remoto analógico interactivo para movimientos de cámara (arriba, abajo, izquierda, derecha, zoom) inspirado en el control de dispositivos SmartThings.
+- 🔍 **Escaneo y Descubrimiento Local:**
+  - **Escaneo TCP:** Barrido ultra veloz de subredes buscando puertos HTTP, RTSP u ONVIF comunes.
+  - **Escaneo UDP:** Detección de dispositivos nativos a través de mensajes de broadcast local.
+- 🎥 **Visualización y Grabación en Tiempo Real:** Reproducción nativa en móviles con `expo-video` y visualizador MJPEG de alto rendimiento. Soporte para grabación local de fragmentos de video directo a la galería del dispositivo.
+- 🏃 **Detección de Movimiento por Imagen:** Algoritmo dinámico que compara fotogramas consecutivos para detectar movimiento local, registrar el historial de eventos e intensidades y disparar alarmas.
+- 🔔 **Alertas en Pantalla e Integración Nube:** Alertas visuales flotantes y soporte para respaldar eventos en la nube mediante webhooks externos (Zapier, Make, IFTTT).
+
+---
+
+## ⚠️ ¿En qué casos NO funciona este proyecto? (Limitaciones Técnicas)
+
+Para evitar malentendidos durante el despliegue o pruebas, ten en cuenta las siguientes restricciones impuestas por los navegadores web, sistemas operativos y firmwares de los fabricantes de hardware:
+
+### 1. Escaneo UDP de cámaras en versión Web o Expo Go básico
+- **Por qué falla:** Los navegadores web no tienen acceso a sockets UDP de bajo nivel debido al sandbox de seguridad HTML5. En entornos móviles simulados con la app cliente estándar de Expo Go, las librerías nativas de sockets (como `react-native-udp`) no están enlazadas dinámicamente.
+- **Caso de uso afectado:** El botón de escaneo "UDP (A9/V720)" no funcionará en navegadores ni en Expo Go estándar.
+- **Solución:** Requiere compilar la aplicación utilizando un Development Client (`npx expo prebuild`) para empaquetar el código nativo compilado, o utilizar únicamente el escaneo TCP.
+
+### 2. Conexión directa a Mini Cámaras A9 / X5 / V720 (Beken Chip)
+- **Por qué falla:** Las cámaras ultra económicas basadas en microcontroladores Beken (aplicación oficial YsxLite o iLnkP2P) **no exponen un servidor web HTTP, RTSP u ONVIF** estándar en la red local. El firmware del fabricante bloquea los puertos locales y transmite video codificado utilizando un protocolo propietario UDP P2P de puerto aleatorio.
+- **Caso de uso afectado:** Si intentas apuntar la URL HTTP/RTSP de la app a la dirección IP de tu cámara X5/A9 directamente, no conectará.
+- **Solución:** Debes utilizar un túnel intermedio en tu red local. El repositorio incluye un script proxy en la carpeta `proxy/` (`proxy/start_proxy.js` basado en la ingeniería inversa `cam-reverse` de la comunidad) que se conecta a la cámara por P2P UDP, desencripta el stream de video y lo retransmite como un servidor local HTTP MJPEG (`http://IP_DE_TU_PC:8081`). Debes agregar la IP y puerto de la PC que ejecuta el proxy en la app.
+
+### 3. Falsos Positivos de puertos en la versión Web (CORS)
+- **Por qué falla:** Los navegadores imponen la política **CORS** (Cross-Origin Resource Sharing). Al realizar pings rápidos de sockets TCP desde JS web mediante `fetch()`, el navegador bloquea la lectura de la respuesta a menos que la cámara web devuelva cabeceras CORS explícitas (lo cual casi ninguna hace).
+- **Caso de uso afectado:** El escáner TCP en navegadores web no puede distinguir con precisión si un puerto está abierto o si fue rechazado por CORS. La app implementa un workaround (asume que los errores que no son "Abort" pueden ser puertos abiertos bloqueados), lo cual puede causar falsos positivos en Chrome/Firefox.
+- **Solución:** Ejecutar el escáner desde la aplicación compilada en Android o iOS, donde el código nativo de red no está sujeto a políticas CORS de navegador.
+
+### 4. Permisos de Red Local en iOS 14+ y Android 10+
+- **Por qué falla:** Apple y Google restringen la búsqueda de IPs en la red de área local (LAN) por motivos de privacidad del usuario.
+- **Caso de uso afectado:** El escáner de red no encontrará ningún dispositivo si el usuario no otorga el permiso de "Red Local" (en iOS) o de "Ubicación precisa" / "Dispositivos cercanos" (en Android).
+- **Solución:** Aceptar explícitamente el prompt de permisos de red local al iniciar la app por primera vez.
+
+### 5. Bloqueo de Contenido Mixto (HTTPS vs HTTP)
+- **Por qué falla:** Si el cliente web de IP Cam Controlador está alojado en un dominio seguro (`https://miservidor.com`), los navegadores modernos bloquearán activamente cualquier petición a direcciones IP locales insecure (`http://192.168.1.100:8080/video`) debido a políticas de Mixed Content.
+- **Caso de uso afectado:** Los reproductores de video no cargarán streams locales de cámaras HTTP.
+- **Solución:** Servir la interfaz web de la aplicación a través de HTTP sin SSL en tu servidor doméstico local (ej. `http://localhost:19006` o `http://192.168.1.X`), o utilizar la aplicación móvil nativa.
+
+---
+
+## 🛠️ Instalación y Configuración
+
+### 1. Clonar e Instalar dependencias
+```bash
+# Clonar repositorio
+git clone https://github.com/gabjesus15/ip-cam-controlador.git
+cd ip-cam-controlador
+
+# Instalar dependencias del proyecto React Native
+npm install
+```
+
+### 2. Iniciar en Modo Desarrollo
+```bash
+# Lanzar servidor de desarrollo de Expo
+npx expo start
+```
+*Presiona **`w`** para abrir en Web, **`a`** para Android, o **`i`** para iOS simulator.*
+
+### 3. Configurar el Proxy local para Mini Cámaras A9 / X5
+Si utilizas una cámara con chip Beken (A9/X5):
+```bash
+# Ir a la carpeta del proxy
+cd proxy
+
+# Instalar las dependencias de node
+npm install
+
+# Iniciar el script de ingeniería inversa local (debe correr en la misma red local)
+node start_proxy.js
+```
+El script buscará la cámara por broadcast UDP, se enlazará a ella, y abrirá un stream en `http://localhost:8081`. En la aplicación móvil, agrega una nueva cámara ingresando la IP de tu computadora y el puerto `8081`.
+
+---
+
+## 📱 Estructura del Código
+
+```
+ip-cam-controlador/
+├── App.js                   # Enrutador principal (Navigation Stack)
+├── proxy/
+│   └── start_proxy.js       # Proxy local UDP-a-MJPEG para cámaras Beken
+├── src/
+│   ├── theme/
+│   │   ├── theme.js         # Tokens del diseño de Samsung One UI
+│   │   └── index.js         # Exportador de temas
+│   ├── components/
+│   │   ├── CameraCard.js    # Tarjeta de cámara (Lista y Cuadrícula redondeadas)
+│   │   ├── StatusBadge.js   # Píldora de estado (online/offline)
+│   │   ├── EmptyState.js    # Pantallas de lista vacía minimalistas
+│   │   └── ScanProgress.js  # Barra de progreso del escáner
+│   ├── screens/
+│   │   ├── HomeScreen.js    # Dashboard principal estilo One UI
+│   │   ├── CameraGridScreen.js # Cuadrícula de previsualizaciones
+│   │   ├── CameraSingleScreen.js # Vista detallada y pad PTZ circular
+│   │   ├── AddCameraScreen.js # Formulario de nueva cámara
+│   │   └── SettingsScreen.js # Preferencias y Webhooks agrupados
+│   ├── services/
+│   │   ├── discoveryService.js # Motores de escaneo TCP y UDP real
+│   │   └── cameraProfiles.js # Path mappings por marca (Hikvision, Dahua, Tapo, etc.)
+│   └── store/
+│       ├── cameraStore.js   # Estado global persistente (Zustand)
+│       └── settingsStore.js # Estado global de ajustes locales
+```
+
+---
+
+## 📐 Especificaciones de Configuración de Cámaras
+
+La aplicación puede conectarse a streams nativos de video de las marcas más populares mediante los siguientes formatos estándar de URL autocompletados:
+
+| Perfil de Marca | Protocolo Stream Típico | Puerto Común | Ruta de Ejemplo |
+| :--- | :--- | :--- | :--- |
+| **Generic MJPEG** | HTTP | `80` / `8080` | `http://IP:PORT/video` |
+| **Hikvision** | RTSP / HTTP | `554` / `8000` | `rtsp://user:pass@IP:554/Streaming/Channels/101` |
+| **Dahua** | RTSP | `554` | `rtsp://user:pass@IP:554/cam/realmonitor?channel=1&subtype=0` |
+| **TP-Link Tapo** | RTSP | `554` | `rtsp://user:pass@IP:554/stream1` |
+| **Reolink** | RTSP / HTTP | `554` / `80` | `rtsp://user:pass@IP:554//h264Preview_01_main` |
+
+---
+
+## 🤝 Contribuir
+
+Si encuentras algún detalle o deseas proponer mejoras visuales, eres libre de abrir un Pull Request en el repositorio. ¡Toda ayuda para mejorar el ecosistema local es bienvenida!
+
+⭐ **¡Si te sirve el proyecto, apóyalo con una estrella en GitHub!**
