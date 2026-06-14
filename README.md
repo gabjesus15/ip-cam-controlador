@@ -1,138 +1,106 @@
-# IP Cam Controlador 📹✨
+# IP Cam Controlador - Especificación y Guía Técnica 📹
 
-Aplicación móvil y web multiplataforma diseñada para el monitoreo, control de movimiento (PTZ), grabación local y alertas en tiempo real de cámaras de seguridad IP.
-
-El diseño de la interfaz ha sido completamente modernizado bajo el lenguaje visual de **Samsung One UI**, caracterizado por amplios espacios de cabecera que facilitan el uso a una mano, tarjetas con bordes muy redondeados, widgets integrados y un pad circular de control remoto unificado tipo SmartThings.
+Aplicación multiplataforma (iOS, Android, Web) construida con **React Native** y **Expo** para la administración, descubrimiento local, procesamiento de video y monitoreo de cámaras IP.
 
 ---
 
-## ✨ Características
+## 🛠️ Arquitectura Técnica y Dependencias
 
-- 🎨 **Diseño Estilo Samsung One UI:** Estética minimalista y premium con esquinas redondeadas suaves (`radiusMd: 16px`), amplias cabeceras descriptivas y acentos en Azul Samsung.
-- 🎮 **Pad PTZ Circular Unificado:** Control remoto analógico interactivo para movimientos de cámara (arriba, abajo, izquierda, derecha, zoom) inspirado en el control de dispositivos SmartThings.
-- 🔍 **Escaneo y Descubrimiento Local:**
-  - **Escaneo TCP:** Barrido ultra veloz de subredes buscando puertos HTTP, RTSP u ONVIF comunes.
-  - **Escaneo UDP:** Detección de dispositivos nativos a través de mensajes de broadcast local.
-- 🎥 **Visualización y Grabación en Tiempo Real:** Reproducción nativa en móviles con `expo-video` y visualizador MJPEG de alto rendimiento. Soporte para grabación local de fragmentos de video directo a la galería del dispositivo.
-- 🏃 **Detección de Movimiento por Imagen:** Algoritmo dinámico que compara fotogramas consecutivos para detectar movimiento local, registrar el historial de eventos e intensidades y disparar alarmas.
-- 🔔 **Alertas en Pantalla e Integración Nube:** Alertas visuales flotantes y soporte para respaldar eventos en la nube mediante webhooks externos (Zapier, Make, IFTTT).
+El núcleo del proyecto utiliza una arquitectura desacoplada basada en hooks para el procesamiento en segundo plano y stores ligeros para la persistencia de datos:
 
----
-
-## ⚠️ ¿En qué casos NO funciona este proyecto? (Limitaciones Técnicas)
-
-Para evitar malentendidos durante el despliegue o pruebas, ten en cuenta las siguientes restricciones impuestas por los navegadores web, sistemas operativos y firmwares de los fabricantes de hardware:
-
-### 1. Escaneo UDP de cámaras en versión Web o Expo Go básico
-- **Por qué falla:** Los navegadores web no tienen acceso a sockets UDP de bajo nivel debido al sandbox de seguridad HTML5. En entornos móviles simulados con la app cliente estándar de Expo Go, las librerías nativas de sockets (como `react-native-udp`) no están enlazadas dinámicamente.
-- **Caso de uso afectado:** El botón de escaneo "UDP (A9/V720)" no funcionará en navegadores ni en Expo Go estándar.
-- **Solución:** Requiere compilar la aplicación utilizando un Development Client (`npx expo prebuild`) para empaquetar el código nativo compilado, o utilizar únicamente el escaneo TCP.
-
-### 2. Conexión directa a Mini Cámaras A9 / X5 / V720 (Beken Chip)
-- **Por qué falla:** Las cámaras ultra económicas basadas en microcontroladores Beken (aplicación oficial YsxLite o iLnkP2P) **no exponen un servidor web HTTP, RTSP u ONVIF** estándar en la red local. El firmware del fabricante bloquea los puertos locales y transmite video codificado utilizando un protocolo propietario UDP P2P de puerto aleatorio.
-- **Caso de uso afectado:** Si intentas apuntar la URL HTTP/RTSP de la app a la dirección IP de tu cámara X5/A9 directamente, no conectará.
-- **Solución:** Debes utilizar un túnel intermedio en tu red local. El repositorio incluye un script proxy en la carpeta `proxy/` (`proxy/start_proxy.js` basado en la ingeniería inversa `cam-reverse` de la comunidad) que se conecta a la cámara por P2P UDP, desencripta el stream de video y lo retransmite como un servidor local HTTP MJPEG (`http://IP_DE_TU_PC:8081`). Debes agregar la IP y puerto de la PC que ejecuta el proxy en la app.
-
-### 3. Falsos Positivos de puertos en la versión Web (CORS)
-- **Por qué falla:** Los navegadores imponen la política **CORS** (Cross-Origin Resource Sharing). Al realizar pings rápidos de sockets TCP desde JS web mediante `fetch()`, el navegador bloquea la lectura de la respuesta a menos que la cámara web devuelva cabeceras CORS explícitas (lo cual casi ninguna hace).
-- **Caso de uso afectado:** El escáner TCP en navegadores web no puede distinguir con precisión si un puerto está abierto o si fue rechazado por CORS. La app implementa un workaround (asume que los errores que no son "Abort" pueden ser puertos abiertos bloqueados), lo cual puede causar falsos positivos en Chrome/Firefox.
-- **Solución:** Ejecutar el escáner desde la aplicación compilada en Android o iOS, donde el código nativo de red no está sujeto a políticas CORS de navegador.
-
-### 4. Permisos de Red Local en iOS 14+ y Android 10+
-- **Por qué falla:** Apple y Google restringen la búsqueda de IPs en la red de área local (LAN) por motivos de privacidad del usuario.
-- **Caso de uso afectado:** El escáner de red no encontrará ningún dispositivo si el usuario no otorga el permiso de "Red Local" (en iOS) o de "Ubicación precisa" / "Dispositivos cercanos" (en Android).
-- **Solución:** Aceptar explícitamente el prompt de permisos de red local al iniciar la app por primera vez.
-
-### 5. Bloqueo de Contenido Mixto (HTTPS vs HTTP)
-- **Por qué falla:** Si el cliente web de IP Cam Controlador está alojado en un dominio seguro (`https://miservidor.com`), los navegadores modernos bloquearán activamente cualquier petición a direcciones IP locales insecure (`http://192.168.1.100:8080/video`) debido a políticas de Mixed Content.
-- **Caso de uso afectado:** Los reproductores de video no cargarán streams locales de cámaras HTTP.
-- **Solución:** Servir la interfaz web de la aplicación a través de HTTP sin SSL en tu servidor doméstico local (ej. `http://localhost:19006` o `http://192.168.1.X`), o utilizar la aplicación móvil nativa.
+- **Runtime/Framework:** Expo SDK (React Native)
+- **Gestión de Estado:** Zustand con persistencia local mediante `AsyncStorage` (`src/store/cameraStore.js` y `src/store/settingsStore.js`).
+- **Reproducción de Video:** `expo-video` para flujos nativos (MP4, HLS/M3U8). Para flujos HTTP MJPEG u ONVIF snapshots, se implementa un bucle de refresco de imágenes a 2 FPS (`CameraSingleScreen.js`).
+- **Detección de Movimiento:** Algoritmo en JavaScript (`src/hooks/useMotionDetection.js`) que analiza fotogramas secuenciales mediante comparación matricial elemental para calcular diferencias de píxeles y evaluar umbrales de sensibilidad.
+- **Grabación Local:** `src/hooks/useRecording.js` captura secuencias de fotogramas (snapshots) en un búfer local, los consolida como un flipbook y permite su exportación a través del sistema de compartición nativo del sistema operativo (`expo-sharing`).
 
 ---
 
-## 🛠️ Instalación y Configuración
+## 🔍 Motor de Descubrimiento de Red
 
-### 1. Clonar e Instalar dependencias
+El servicio de descubrimiento local (`src/services/discoveryService.js`) opera en dos capas de red diferentes:
+
+### 1. Escaneo Subnet TCP (Barrido de Puertos)
+- Realiza peticiones asíncronas concurrentes (concurrencia configurable entre 1 y 50 hilos en paralelo) a un segmento `/24` (ej. `192.168.1.1` al `192.168.1.254`).
+- Puertos analizados: `80` (HTTP), `8080`/`8081` (Web Alt), `88` (Foscam), `554` (RTSP), `8000` (ONVIF/Hikvision), `37777` (Dahua).
+- **Control de Aborto:** Utiliza `AbortController` para cancelar peticiones pendientes si el usuario detiene el escaneo o se alcanza el timeout de conexión (200ms - 5000ms).
+
+### 2. Escaneo UDP Broadcast
+- Envía un paquete broadcast (IP `255.255.255.255`) a través del puerto de descubrimiento `32108` para solicitar identificación a dispositivos locales compatibles con Beken/A9.
+- El listener del puerto responde al protocolo P2P propietario de enlace local.
+
+---
+
+## ⚠️ Limitaciones y Casos de Falla Técnica (¿Dónde NO funciona?)
+
+El proyecto presenta limitaciones inherentes impuestas por la seguridad del navegador, restricciones del sistema operativo y firmwares cerrados de cámaras económicas:
+
+### 1. Incompatibilidad de Sockets UDP en Web y Expo Go
+- **Causa:** Las APIs de navegador web no exponen soporte para sockets UDP crudos (`dgram`). En Expo Go, el bundle de la aplicación no incluye los enlaces nativos compilados de `react-native-udp`.
+- **Falla:** El escaneo UDP ("UDP A9/V720") fallará silenciosamente o disparará un error controlado en navegadores y en Expo Go estándar.
+- **Solución:** Requiere compilar la app nativamente con un Development Client (`npx expo prebuild` y `run:android` / `run:ios`).
+
+### 2. Bloqueo de Conexión en Cámaras Beken (A9 / X5 / V720)
+- **Causa:** Las mini cámaras genéricas con chip Beken (que usan apps como YsxLite) no implementan protocolos estándar como HTTP o RTSP en su interfaz de red local. Emplean un protocolo cerrado P2P UDP con cifrado propietario.
+- **Falla:** La app no podrá conectar de forma directa con la IP de la cámara.
+- **Solución:** Correr el script proxy intermedio de Node.js en la red local (`proxy/start_proxy.js`). Este script actúa como cliente UDP P2P de la cámara, desencripta el flujo de video y expone un servidor HTTP MJPEG local que la app sí puede reproducir.
+
+### 3. Restricciones de CORS en Escaneo TCP (Navegadores)
+- **Causa:** Los navegadores web aplican estrictamente las políticas Same-Origin (CORS). Una petición `fetch()` HTTP desde un navegador a una cámara local sin cabeceras `Access-Control-Allow-Origin: *` será bloqueada por el motor JS del navegador.
+- **Falla:** El escáner TCP en la web no puede leer las respuestas HTTP de los dispositivos. La app asume cualquier error diferente de `AbortError` como puerto potencialmente abierto, resultando en falsos positivos.
+- **Solución:** Utilizar el escaneo local desde clientes nativos compilados (Android/iOS), donde las peticiones HTTP no están sujetas a restricciones CORS del navegador.
+
+### 4. Directiva de Contenido Mixto (Mixed Content Block)
+- **Causa:** Los navegadores bloquean la carga de recursos HTTP insecure desde contextos HTTPS seguros.
+- **Falla:** Si la aplicación web se aloja bajo HTTPS (`https://controlador.midominio.com`), cualquier llamada de video o snapshot local `http://192.168.1.50:8080/video` será rechazada por el navegador.
+- **Solución:** Alojar el servidor web cliente en un entorno HTTP sin SSL en la red local o usar las apps móviles nativas.
+
+### 5. Entitlements de Red Local en iOS 14+
+- **Causa:** Apple restringe el escaneo LAN y la búsqueda de dispositivos en la subred local.
+- **Falla:** El descubrimiento no devolverá ningún resultado en iOS si no se han declarado las llaves de permiso y los identificadores de servicio en el `Info.plist`.
+- **Solución:** Declarar `NSLocalNetworkUsageDescription` y los esquemas de Bonjour utilizados en la configuración del prebuild del archivo `app.json`.
+
+---
+
+## 💻 Configuración del Proxy Local (Cámaras Beken/A9/X5)
+
+El script proxy traduce la comunicación cifrada P2P UDP a una corriente HTTP MJPEG estándar compatible con la aplicación:
+
+### Configuración e Inicio
 ```bash
-# Clonar repositorio
-git clone https://github.com/gabjesus15/ip-cam-controlador.git
-cd ip-cam-controlador
-
-# Instalar dependencias del proyecto React Native
-npm install
-```
-
-### 2. Iniciar en Modo Desarrollo
-```bash
-# Lanzar servidor de desarrollo de Expo
-npx expo start
-```
-*Presiona **`w`** para abrir en Web, **`a`** para Android, o **`i`** para iOS simulator.*
-
-### 3. Configurar el Proxy local para Mini Cámaras A9 / X5
-Si utilizas una cámara con chip Beken (A9/X5):
-```bash
-# Ir a la carpeta del proxy
+# Navegar al directorio del proxy
 cd proxy
 
-# Instalar las dependencias de node
+# Instalar dependencias requeridas (dgram, http, etc.)
 npm install
 
-# Iniciar el script de ingeniería inversa local (debe correr en la misma red local)
+# Iniciar el transcodificador local
 node start_proxy.js
 ```
-El script buscará la cámara por broadcast UDP, se enlazará a ella, y abrirá un stream en `http://localhost:8081`. En la aplicación móvil, agrega una nueva cámara ingresando la IP de tu computadora y el puerto `8081`.
 
----
-
-## 📱 Estructura del Código
-
+### Flujo de Datos
 ```
-ip-cam-controlador/
-├── App.js                   # Enrutador principal (Navigation Stack)
-├── proxy/
-│   └── start_proxy.js       # Proxy local UDP-a-MJPEG para cámaras Beken
-├── src/
-│   ├── theme/
-│   │   ├── theme.js         # Tokens del diseño de Samsung One UI
-│   │   └── index.js         # Exportador de temas
-│   ├── components/
-│   │   ├── CameraCard.js    # Tarjeta de cámara (Lista y Cuadrícula redondeadas)
-│   │   ├── StatusBadge.js   # Píldora de estado (online/offline)
-│   │   ├── EmptyState.js    # Pantallas de lista vacía minimalistas
-│   │   └── ScanProgress.js  # Barra de progreso del escáner
-│   ├── screens/
-│   │   ├── HomeScreen.js    # Dashboard principal estilo One UI
-│   │   ├── CameraGridScreen.js # Cuadrícula de previsualizaciones
-│   │   ├── CameraSingleScreen.js # Vista detallada y pad PTZ circular
-│   │   ├── AddCameraScreen.js # Formulario de nueva cámara
-│   │   └── SettingsScreen.js # Preferencias y Webhooks agrupados
-│   ├── services/
-│   │   ├── discoveryService.js # Motores de escaneo TCP y UDP real
-│   │   └── cameraProfiles.js # Path mappings por marca (Hikvision, Dahua, Tapo, etc.)
-│   └── store/
-│       ├── cameraStore.js   # Estado global persistente (Zustand)
-│       └── settingsStore.js # Estado global de ajustes locales
+[Cámara A9/X5] <--- (P2P UDP / puerto 32108) ---> [PC local: start_proxy.js] <--- (HTTP MJPEG / puerto 8081) ---> [App IP Cam]
 ```
 
----
-
-## 📐 Especificaciones de Configuración de Cámaras
-
-La aplicación puede conectarse a streams nativos de video de las marcas más populares mediante los siguientes formatos estándar de URL autocompletados:
-
-| Perfil de Marca | Protocolo Stream Típico | Puerto Común | Ruta de Ejemplo |
-| :--- | :--- | :--- | :--- |
-| **Generic MJPEG** | HTTP | `80` / `8080` | `http://IP:PORT/video` |
-| **Hikvision** | RTSP / HTTP | `554` / `8000` | `rtsp://user:pass@IP:554/Streaming/Channels/101` |
-| **Dahua** | RTSP | `554` | `rtsp://user:pass@IP:554/cam/realmonitor?channel=1&subtype=0` |
-| **TP-Link Tapo** | RTSP | `554` | `rtsp://user:pass@IP:554/stream1` |
-| **Reolink** | RTSP / HTTP | `554` / `80` | `rtsp://user:pass@IP:554//h264Preview_01_main` |
+Una vez que el script se en enlace con la dirección MAC de la cámara en la red, expone la ruta local. En la aplicación, ingresa la IP de la computadora que ejecuta el proxy y el puerto `8081` con formato genérico.
 
 ---
 
-## 🤝 Contribuir
+## 🛠️ Instalación y Compilación
 
-Si encuentras algún detalle o deseas proponer mejoras visuales, eres libre de abrir un Pull Request en el repositorio. ¡Toda ayuda para mejorar el ecosistema local es bienvenida!
+### Instalación de dependencias
+```bash
+npm install
+```
 
-⭐ **¡Si te sirve el proyecto, apóyalo con una estrella en GitHub!**
+### Ejecutar Servidor de Desarrollo (Metro)
+```bash
+npx expo start
+```
+
+### Compilar Paquete Estático para Web
+```bash
+npx expo export --platform web
+```
+*Genera los bundles optimizados en el directorio `/dist`.*
