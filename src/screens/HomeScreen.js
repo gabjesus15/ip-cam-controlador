@@ -24,9 +24,11 @@ const COLORS = {
 };
 
 const HomeScreen = ({ navigation }) => {
-  const { cameras, scanNetwork } = useCameraStore();
+  const { cameras, scanNetwork, scanONVIF } = useCameraStore();
   const [scanning, setScanning] = useState(false);
+  const [scanningONVIF, setScanningONVIF] = useState(false);
   const abortControllerRef = React.useRef(null);
+  const abortControllerONVIFRef = React.useRef(null);
 
   const handleScan = async () => {
     if (scanning) {
@@ -60,6 +62,41 @@ const HomeScreen = ({ navigation }) => {
       }
     } finally {
       setScanning(false);
+    }
+  };
+
+  const handleScanONVIF = async () => {
+    if (scanningONVIF) {
+      // Cancel scan
+      abortControllerONVIFRef.current?.abort();
+      setScanningONVIF(false);
+      return;
+    }
+    
+    abortControllerONVIFRef.current = new AbortController();
+    setScanningONVIF(true);
+    try {
+      const found = await scanONVIF('192.168.1', abortControllerONVIFRef.current.signal);
+      if (found.length === 0) {
+        Alert.alert('Búsqueda ONVIF completada', 'No se encontraron cámaras ONVIF en la red.');
+      } else {
+        Alert.alert(
+          'Cámaras ONVIF encontradas', 
+          `Se encontraron ${found.length} cámaras ONVIF.`,
+          [
+            { text: 'Cancelar', style: 'cancel' },
+            { text: 'Agregar', onPress: () => navigation.navigate('AddCamera', { foundCameras: found }) }
+          ]
+        );
+      }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        console.log('ONVIF scan cancelled');
+      } else {
+        Alert.alert('Error', 'No se pudo completar el escaneo ONVIF.');
+      }
+    } finally {
+      setScanningONVIF(false);
     }
   };
 
@@ -111,6 +148,21 @@ const HomeScreen = ({ navigation }) => {
           )}
           <Text style={styles.actionText}>
             {scanning ? 'Cancelar Escaneo' : 'Escanear Red'}
+          </Text>
+          <FontAwesome5 name="chevron-right" size={12} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={handleScanONVIF}
+        >
+          {scanningONVIF ? (
+            <FontAwesome5 name="times" size={20} color="#ff4444" />
+          ) : (
+            <FontAwesome5 name="broadcast-tower" size={20} color={COLORS.accent} />
+          )}
+          <Text style={styles.actionText}>
+            {scanningONVIF ? 'Cancelar ONVIF' : 'Escanear ONVIF'}
           </Text>
           <FontAwesome5 name="chevron-right" size={12} color={COLORS.textSecondary} />
         </TouchableOpacity>

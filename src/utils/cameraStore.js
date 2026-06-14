@@ -137,6 +137,77 @@ export const useCameraStore = () => {
     return found;
   };
 
+  const scanONVIF = async (subnet = '192.168.1', signal) => {
+    const onvifPorts = ['80', '8080', '8000', '8081'];
+    const onvifPaths = ['/onvif/device_service', '/onvif', '/device_service'];
+    const found = [];
+
+    // ONVIF probe message
+    const probeMessage = `<?xml version="1.0" encoding="UTF-8"?>
+      <Envelope xmlns="http://www.w3.org/2003/05/soap-envelope">
+        <Body>
+          <Probe xmlns="http://schemas.xmlsoap.org/ws/2005/04/discovery"/>
+        </Body>
+      </Envelope>`;
+
+    // Scan for ONVIF cameras
+    for (let i = 1; i <= 20; i++) {
+      if (signal?.aborted) break;
+      
+      const ip = `${subnet}.${i}`;
+      
+      for (const port of onvifPorts) {
+        if (signal?.aborted) break;
+        
+        for (const path of onvifPaths) {
+          if (signal?.aborted) break;
+          
+          const url = `http://${ip}:${port}${path}`;
+          
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1000);
+            
+            // Try to probe ONVIF endpoint
+            const response = await fetch(url, { 
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/soap+xml; charset=utf-8',
+              },
+              body: probeMessage,
+              signal: controller.signal,
+            });
+            
+            clearTimeout(timeoutId);
+            
+            if (response.ok || response.status === 400) {
+              // If we get any response, it might be ONVIF
+              const text = await response.text();
+              if (text.includes('ONVIF') || text.includes('Device') || text.includes('wsdl')) {
+                found.push({
+                  id: `onvif_${Date.now()}_${i}`,
+                  name: `ONVIF Cámara ${ip}:${port}`,
+                  ip,
+                  port,
+                  url: `http://${ip}:${port}${path}`,
+                  type: 'onvif',
+                  status: 'online',
+                  username: 'admin',
+                  password: '',
+                  onvif: true,
+                });
+              }
+            }
+          } catch {
+            // Continue scanning
+          }
+        }
+      }
+    }
+
+    return found;
+  };
+
   return {
     cameras,
     loading,
@@ -145,6 +216,7 @@ export const useCameraStore = () => {
     updateCamera,
     checkCameraStatus,
     scanNetwork,
+    scanONVIF,
     refresh: loadCameras,
   };
 };
