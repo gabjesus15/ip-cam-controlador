@@ -372,43 +372,39 @@ const CameraSingleScreen = ({ route, navigation }) => {
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Nombre</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: '#fff' }]}
                   value={editForm.name}
                   onChangeText={(text) => setEditForm({ ...editForm, name: text })}
-                  placeholderTextColor={COLORS.textSecondary}
-                  color={COLORS.text}
+                  placeholderTextColor="#666"
                 />
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>IP</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: '#fff' }]}
                   value={editForm.ip}
                   onChangeText={(text) => setEditForm({ ...editForm, ip: text })}
-                  placeholderTextColor={COLORS.textSecondary}
-                  color={COLORS.text}
+                  placeholderTextColor="#666"
                   keyboardType="numeric"
                 />
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Puerto</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: '#fff' }]}
                   value={editForm.port}
                   onChangeText={(text) => setEditForm({ ...editForm, port: text })}
-                  placeholderTextColor={COLORS.textSecondary}
-                  color={COLORS.text}
+                  placeholderTextColor="#666"
                   keyboardType="numeric"
                 />
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>URL</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: '#fff' }]}
                   value={editForm.url}
                   onChangeText={(text) => setEditForm({ ...editForm, url: text })}
-                  placeholderTextColor={COLORS.textSecondary}
-                  color={COLORS.text}
+                  placeholderTextColor="#666"
                 />
               </View>
               <TouchableOpacity style={styles.saveButton} onPress={handleSaveEdit}>
@@ -752,7 +748,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    backgroundColor: COLORS.bg,
+    backgroundColor: '#000',
+    color: '#fff',
+    ...Platform.select({
+      web: {
+        outlineStyle: 'none',
+      },
+    }),
   },
   saveButton: {
     backgroundColor: COLORS.accent,

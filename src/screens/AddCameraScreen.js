@@ -195,12 +195,11 @@ const AddCameraScreen = ({ route, navigation }) => {
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Nombre *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: '#fff' }]}
             value={name}
             onChangeText={setName}
             placeholder="Ej: Cámara Principal"
-            placeholderTextColor={COLORS.textSecondary}
-            color={COLORS.text}
+            placeholderTextColor="#666"
           />
         </View>
 
@@ -208,26 +207,24 @@ const AddCameraScreen = ({ route, navigation }) => {
           <View style={[styles.inputGroup, { flex: 2, marginRight: 12 }]}>
             <Text style={styles.inputLabel}>Dirección IP *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: '#fff' }]}
               value={ip}
               onChangeText={setIp}
               placeholder="192.168.1.100"
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor="#666"
               keyboardType="numeric"
               autoCapitalize="none"
-              color={COLORS.text}
             />
           </View>
           <View style={[styles.inputGroup, { flex: 1 }]}>
             <Text style={styles.inputLabel}>Puerto *</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: '#fff' }]}
               value={port}
               onChangeText={setPort}
               placeholder="8080"
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor="#666"
               keyboardType="numeric"
-              color={COLORS.text}
             />
           </View>
         </View>
@@ -236,25 +233,23 @@ const AddCameraScreen = ({ route, navigation }) => {
           <View style={[styles.inputGroup, { flex: 1, marginRight: 12 }]}>
             <Text style={styles.inputLabel}>Usuario</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: '#fff' }]}
               value={username}
               onChangeText={setUsername}
               placeholder="admin"
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor="#666"
               autoCapitalize="none"
-              color={COLORS.text}
             />
           </View>
           <View style={[styles.inputGroup, { flex: 1 }]}>
             <Text style={styles.inputLabel}>Contraseña</Text>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: '#fff' }]}
               value={password}
               onChangeText={setPassword}
               placeholder="******"
-              placeholderTextColor={COLORS.textSecondary}
+              placeholderTextColor="#666"
               secureTextEntry
-              color={COLORS.text}
             />
           </View>
         </View>
@@ -270,14 +265,13 @@ const AddCameraScreen = ({ route, navigation }) => {
             />
           </View>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { color: '#fff' }]}
             value={url}
             onChangeText={setUrl}
             placeholder="http://192.168.1.100:8080/video"
-            placeholderTextColor={COLORS.textSecondary}
+            placeholderTextColor="#666"
             autoCapitalize="none"
             editable={!autoDetect}
-            color={COLORS.text}
           />
           {autoDetect && (
             <TouchableOpacity 
@@ -470,7 +464,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    backgroundColor: COLORS.bg,
+    backgroundColor: '#000',
+    color: '#fff',
+    ...Platform.select({
+      web: {
+        outlineStyle: 'none',
+        color: '#fff',
+      },
+    }),
   },
   urlHeader: {
     flexDirection: 'row',
