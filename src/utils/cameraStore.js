@@ -3,33 +3,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CAMERAS_KEY = '@ipcam_cameras';
 
-// Default demo cameras for testing
-const DEMO_CAMERAS = [
-  {
-    id: '1',
-    name: 'Cámara Principal',
-    ip: '192.168.1.100',
-    port: '8080',
-    username: 'admin',
-    password: '',
-    url: 'http://192.168.1.100:8080/video',
-    type: 'demo',
-    status: 'online',
-    thumbnail: null,
-  },
-  {
-    id: '2',
-    name: 'Cámara Jardín',
-    ip: '192.168.1.101',
-    port: '8080',
-    username: 'admin',
-    password: '',
-    url: 'http://192.168.1.101:8080/video',
-    type: 'demo',
-    status: 'online',
-    thumbnail: null,
-  },
-];
+// Default empty cameras array - no demo cameras
+const DEMO_CAMERAS = [];
 
 export const useCameraStore = () => {
   const [cameras, setCameras] = useState([]);
