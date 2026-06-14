@@ -9,9 +9,12 @@ import {
   Alert,
   ActivityIndicator,
   Switch,
+  Animated,
+  Platform,
 } from 'react-native';
 import { FontAwesome5 } from '@expo/vector-icons';
 import useCameraStore from '../utils/cameraStore';
+import useMicroInteractions from '../hooks/useMicroInteractions';
 
 const COLORS = {
   bg: '#0a0a0a',
@@ -20,12 +23,14 @@ const COLORS = {
   text: '#fff',
   textSecondary: '#888',
   accent: '#00d4ff',
+  accentLight: '#00d4ff22',
   online: '#00ff88',
   offline: '#ff4444',
 };
 
 const AddCameraScreen = ({ route, navigation }) => {
   const { addCamera, scanNetwork } = useCameraStore();
+  const microInteractions = useMicroInteractions();
   const { foundCameras } = route.params || {};
   
   const [name, setName] = useState('');
@@ -38,17 +43,27 @@ const AddCameraScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [discovered, setDiscovered] = useState(foundCameras || []);
+  const [selectedType, setSelectedType] = useState('generic');
+
+  const cameraTypes = [
+    { id: 'generic', name: 'Genérica', icon: 'video' },
+    { id: 'onvif', name: 'ONVIF', icon: 'broadcast-tower' },
+    { id: 'hikvision', name: 'Hikvision', icon: 'shield-alt' },
+    { id: 'dahua', name: 'Dahua', icon: 'lock' },
+  ];
 
   const handleAutoDetect = () => {
     if (ip && port) {
       const detectedUrl = `http://${ip}:${port}/video`;
       setUrl(detectedUrl);
+      microInteractions.vibrate();
     }
   };
 
   const handleAdd = async () => {
     if (!name || !ip || !port) {
       Alert.alert('Error', 'Por favor completa los campos requeridos');
+      microInteractions.shake();
       return;
     }
 
@@ -62,6 +77,8 @@ const AddCameraScreen = ({ route, navigation }) => {
         username,
         password,
         url: cameraUrl,
+        type: selectedType,
+        onvif: selectedType === 'onvif',
       });
       Alert.alert('Éxito', 'Cámara agregada correctamente', [
         { text: 'OK', onPress: () => navigation.goBack() }
@@ -75,11 +92,14 @@ const AddCameraScreen = ({ route, navigation }) => {
 
   const handleScan = async () => {
     setScanning(true);
+    microInteractions.vibrate();
     try {
       const found = await scanNetwork();
       setDiscovered(found);
       if (found.length === 0) {
         Alert.alert('Sin resultados', 'No se encontraron cámaras en la red');
+      } else {
+        microInteractions.pulse();
       }
     } catch (error) {
       Alert.alert('Error', 'No se pudo completar el escaneo');
@@ -93,12 +113,51 @@ const AddCameraScreen = ({ route, navigation }) => {
     setIp(camera.ip);
     setPort(camera.port);
     setUrl(camera.url);
+    setSelectedType(camera.type || 'generic');
     setDiscovered([]);
+    microInteractions.vibrate();
   };
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Discovered */}
+      {/* Camera Type Selector */}
+      <View style={styles.typeSection}>
+        <Text style={styles.sectionTitle}>Tipo de Cámara</Text>
+        <View style={styles.typeContainer}>
+          {cameraTypes.map((type) => (
+            <TouchableOpacity
+              key={type.id}
+              style={[
+                styles.typeButton,
+                selectedType === type.id && styles.typeButtonActive,
+              ]}
+              onPress={() => {
+                setSelectedType(type.id);
+                microInteractions.vibrate();
+              }}
+              activeOpacity={0.7}
+              onPressIn={microInteractions.pressIn}
+              onPressOut={microInteractions.pressOut}
+            >
+              <FontAwesome5
+                name={type.icon}
+                size={18}
+                color={selectedType === type.id ? COLORS.bg : COLORS.accent}
+              />
+              <Text
+                style={[
+                  styles.typeText,
+                  selectedType === type.id && styles.typeTextActive,
+                ]}
+              >
+                {type.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Discovered Cameras */}
       {discovered.length > 0 && (
         <View style={styles.discoveredSection}>
           <Text style={styles.sectionTitle}>Cámaras Encontradas</Text>
@@ -107,6 +166,9 @@ const AddCameraScreen = ({ route, navigation }) => {
               key={camera.id}
               style={styles.discoveredItem}
               onPress={() => selectDiscovered(camera)}
+              activeOpacity={0.7}
+              onPressIn={microInteractions.pressIn}
+              onPressOut={microInteractions.pressOut}
             >
               <View style={styles.discoveredIcon}>
                 <FontAwesome5 name="video" size={18} color={COLORS.accent} />
@@ -114,6 +176,11 @@ const AddCameraScreen = ({ route, navigation }) => {
               <View style={styles.discoveredInfo}>
                 <Text style={styles.discoveredName}>{camera.name}</Text>
                 <Text style={styles.discoveredIp}>{camera.ip}:{camera.port}</Text>
+                {camera.onvif && (
+                  <View style={styles.onvifBadge}>
+                    <Text style={styles.onvifText}>ONVIF</Text>
+                  </View>
+                )}
               </View>
               <FontAwesome5 name="check" size={14} color={COLORS.online} />
             </TouchableOpacity>
@@ -123,7 +190,7 @@ const AddCameraScreen = ({ route, navigation }) => {
 
       {/* Form */}
       <View style={styles.formSection}>
-        <Text style={styles.sectionTitle}>Agregar Manualmente</Text>
+        <Text style={styles.sectionTitle}>Configuración</Text>
         
         <View style={styles.inputGroup}>
           <Text style={styles.inputLabel}>Nombre *</Text>
@@ -213,7 +280,13 @@ const AddCameraScreen = ({ route, navigation }) => {
             color={COLORS.text}
           />
           {autoDetect && (
-            <TouchableOpacity style={styles.detectBtn} onPress={handleAutoDetect}>
+            <TouchableOpacity 
+              style={styles.detectBtn} 
+              onPress={handleAutoDetect}
+              activeOpacity={0.7}
+              onPressIn={microInteractions.pressIn}
+              onPressOut={microInteractions.pressOut}
+            >
               <FontAwesome5 name="magic" size={12} color={COLORS.accent} />
               <Text style={styles.detectBtnText}>Auto-detectar URL</Text>
             </TouchableOpacity>
@@ -223,7 +296,14 @@ const AddCameraScreen = ({ route, navigation }) => {
 
       {/* Actions */}
       <View style={styles.actions}>
-        <TouchableOpacity style={styles.scanBtn} onPress={handleScan} disabled={scanning}>
+        <TouchableOpacity 
+          style={styles.scanBtn} 
+          onPress={handleScan} 
+          disabled={scanning}
+          activeOpacity={0.7}
+          onPressIn={microInteractions.pressIn}
+          onPressOut={microInteractions.pressOut}
+        >
           {scanning ? (
             <ActivityIndicator color={COLORS.accent} />
           ) : (
@@ -234,7 +314,14 @@ const AddCameraScreen = ({ route, navigation }) => {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.addBtn} onPress={handleAdd} disabled={loading}>
+        <TouchableOpacity 
+          style={styles.addBtn} 
+          onPress={handleAdd} 
+          disabled={loading}
+          activeOpacity={0.7}
+          onPressIn={microInteractions.pressIn}
+          onPressOut={microInteractions.pressOut}
+        >
           {loading ? (
             <ActivityIndicator color={COLORS.bg} />
           ) : (
@@ -254,7 +341,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bg,
   },
-  discoveredSection: {
+  typeSection: {
     padding: 16,
     backgroundColor: COLORS.surface,
     marginBottom: 8,
@@ -265,21 +352,67 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textTransform: 'uppercase',
     letterSpacing: 2,
+    fontWeight: '600',
+  },
+  typeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  typeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.bg,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    minWidth: 100,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      },
+    }),
+  },
+  typeButtonActive: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  typeText: {
+    color: COLORS.accent,
+    fontSize: 13,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  typeTextActive: {
+    color: COLORS.bg,
+  },
+  discoveredSection: {
+    padding: 16,
+    backgroundColor: COLORS.surface,
+    marginBottom: 8,
   },
   discoveredItem: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.bg,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
     borderColor: COLORS.border,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      },
+    }),
   },
   discoveredIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 10,
     backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
@@ -290,13 +423,27 @@ const styles = StyleSheet.create({
   },
   discoveredName: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: COLORS.text,
   },
   discoveredIp: {
     fontSize: 12,
     color: COLORS.textSecondary,
     marginTop: 2,
+  },
+  onvifBadge: {
+    backgroundColor: COLORS.accentLight,
+    borderRadius: 4,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+    marginTop: 4,
+  },
+  onvifText: {
+    fontSize: 10,
+    color: COLORS.accent,
+    fontWeight: '700',
+    textTransform: 'uppercase',
   },
   formSection: {
     padding: 16,
@@ -315,11 +462,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    fontWeight: '600',
   },
   input: {
     borderWidth: 1,
     borderColor: COLORS.border,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 12,
     fontSize: 14,
     backgroundColor: COLORS.bg,
@@ -349,7 +497,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.surface,
@@ -357,7 +505,7 @@ const styles = StyleSheet.create({
   },
   scanBtnText: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: '600',
     color: COLORS.accent,
     marginLeft: 8,
   },
@@ -365,13 +513,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 14,
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: 12,
     backgroundColor: COLORS.accent,
   },
   addBtnText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: COLORS.bg,
     marginLeft: 8,
   },
