@@ -5,11 +5,15 @@ Aplicación multiplataforma para control y monitoreo de cámaras IP. Construida 
 ## ✨ Características
 
 - 📹 **Control de cámaras IP** - Agrega, edita y elimina cámaras de tu red
-- 🔍 **Escaneo automático** - Detecta cámaras automáticamente en tu red local
+- 🔍 **Escaneo automático** - Detecta cámaras automáticamente (HTTP y ONVIF)
+- 📹 **Grabación de video** - Graba streams de cámaras en tiempo real
+- 🏃 **Detección de movimiento** - Monitoreo inteligente con alertas
+- 🔔 **Notificaciones push** - Alertas en tiempo real para eventos
 - 🌐 **Multiplataforma** - Funciona en iOS, Android y navegadores web
 - 📱 **Diseño responsive** - Adaptable a móviles, tablets y escritorio
 - 🎨 **Tema oscuro** - Interfaz moderna y minimalista
-- 🔄 **Estado en tiempo real** - Indicadores de online/offline
+- ✨ **Micro-interacciones** - Animaciones y gestos táctiles
+- 🔄 **Estado en tiempo real** - Indicadores de online/offline con monitoreo
 - 📸 **Vista de grid** - Visualiza múltiples cámaras simultáneamente
 - 🔒 **Seguridad** - Soporte para autenticación básica (usuario/contraseña)
 
@@ -20,6 +24,7 @@ Aplicación multiplataforma para control y monitoreo de cámaras IP. Construida 
 - **React Navigation** - Navegación entre pantallas
 - **AsyncStorage** - Almacenamiento local persistente
 - **FontAwesome5** - Iconografía profesional
+- **Custom Hooks** - Arquitectura modular con hooks reutilizables
 
 ## 📋 Requisitos
 
@@ -78,12 +83,17 @@ ip-cam-controlador/
 ├── App.js                 # Punto de entrada
 ├── src/
 │   ├── screens/
-│   │   ├── HomeScreen.js        # Dashboard principal
+│   │   ├── HomeScreen.js         # Dashboard principal
 │   │   ├── CameraGridScreen.js  # Vista de grid
-│   │   ├── CameraSingleScreen.js # Vista individual
-│   │   └── AddCameraScreen.js   # Agregar/Editar cámara
+│   │   ├── CameraSingleScreen.js # Vista individual con controles
+│   │   └── AddCameraScreen.js    # Agregar/Editar cámara
+│   ├── hooks/
+│   │   ├── useMicroInteractions.js  # Animaciones y gestos
+│   │   ├── useMotionDetection.js    # Detección de movimiento
+│   │   ├── useRecording.js          # Grabación de video
+│   │   └── useNotifications.js      # Notificaciones push
 │   └── utils/
-│       └── cameraStore.js       # Estado global (Zustand-like)
+│       └── cameraStore.js           # Estado global (Zustand-like)
 ├── assets/                # Imágenes y recursos
 └── package.json
 ```
@@ -103,9 +113,13 @@ ip-cam-controlador/
 
 ### Vista Individual
 - Visualización fullscreen
+- **Grabación de video** con indicador REC
+- **Detección de movimiento** con historial
+- **Notificaciones** en tiempo real
 - Información detallada de la cámara
 - Controles (PTZ, zoom, etc.)
 - Edición de configuración
+- Gestos táctiles y micro-interacciones
 
 ### Agregar Cámara
 - Formulario de configuración
@@ -189,14 +203,17 @@ La app es compatible con la mayoría de cámaras IP que exponen streams:
 
 ## 📝 Roadmap
 
+- [x] Grabación de video
+- [x] Detección de movimiento
+- [x] Notificaciones push
+- [x] Soporte para cámaras ONVIF
+- [x] Micro-interacciones y gestos
 - [ ] Soporte para RTSP con autenticación
-- [ ] Grabación de video
-- [ ] Detección de movimiento
-- [ ] Notificaciones push
-- [ ] Soporte para cámaras ONVIF
 - [ ] Modo oscuro/claro
 - [ ] Widgets para home screen
 - [ ] Soporte para múltiples streams
+- [ ] Integración con cloud storage
+- [ ] Análisis de IA para detección de objetos
 
 ## 🤝 Contribución
 
