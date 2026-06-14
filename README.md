@@ -1,103 +1,220 @@
 # IP Cam Controlador
 
-Aplicación cross-platform para controlar y monitorear cámaras IP en tu red local.
+Aplicación multiplataforma para control y monitoreo de cámaras IP. Construida con **React Native** y **Expo**, compatible con **iOS**, **Android** y **Web**.
 
-## Características
+## ✨ Características
 
-- **Detección automática**: Escanea la red para encontrar cámaras IP automáticamente
-- **Vista en grid**: Muestra todas las cámaras en una cuadrícula organizada
-- **Vista individual**: Muestra una cámara específica en pantalla completa
-- **Agregar manualmente**: Permite agregar cámaras por dirección IP
-- **Estado en tiempo real**: Verifica si las cámaras están en línea u offline
-- **Controles**: Botones para mover, zoom, foto y grabar (UI)
-- **Cross-platform**: Funciona en Android, iOS y Web
+- 📹 **Control de cámaras IP** - Agrega, edita y elimina cámaras de tu red
+- 🔍 **Escaneo automático** - Detecta cámaras automáticamente en tu red local
+- 🌐 **Multiplataforma** - Funciona en iOS, Android y navegadores web
+- 📱 **Diseño responsive** - Adaptable a móviles, tablets y escritorio
+- 🎨 **Tema oscuro** - Interfaz moderna y minimalista
+- 🔄 **Estado en tiempo real** - Indicadores de online/offline
+- 📸 **Vista de grid** - Visualiza múltiples cámaras simultáneamente
+- 🔒 **Seguridad** - Soporte para autenticación básica (usuario/contraseña)
 
-## Estructura del Proyecto
+## 🚀 Tecnologías
+
+- **React Native** - Framework principal
+- **Expo** - Plataforma de desarrollo
+- **React Navigation** - Navegación entre pantallas
+- **AsyncStorage** - Almacenamiento local persistente
+- **FontAwesome5** - Iconografía profesional
+
+## 📋 Requisitos
+
+- Node.js >= 18
+- npm o yarn
+- Expo CLI (`npm install -g expo-cli`)
+- Dispositivo físico o emulador (iOS/Android)
+
+## 🛠️ Instalación
+
+```bash
+# Clonar el repositorio
+git clone https://github.com/gabjesus15/ip-cam-controlador.git
+
+# Entrar al directorio
+cd ip-cam-controlador
+
+# Instalar dependencias
+npm install
+
+# Iniciar servidor de desarrollo
+npx expo start
+```
+
+## 🏃 Uso
+
+### Desarrollo
+
+```bash
+# Iniciar en modo desarrollo
+npx expo start
+
+# Opciones:
+# - i: Abrir en iOS simulator
+# - a: Abrir en Android emulator
+# - w: Abrir en navegador web
+# - r: Recargar bundler
+# - m: Mostrar menú
+# - shift+m: Seleccionar dispositivo
+```
+
+### Producción Web
+
+```bash
+# Generar build estático
+npx expo export --platform web
+
+# Servir localmente
+cd dist && npx serve
+```
+
+## 📱 Estructura del Proyecto
 
 ```
 ip-cam-controlador/
-├── App.js                          # Entry point con navegación
+├── App.js                 # Punto de entrada
 ├── src/
 │   ├── screens/
-│   │   ├── HomeScreen.js           # Pantalla principal con stats
-│   │   ├── CameraGridScreen.js     # Grid de todas las cámaras
-│   │   ├── CameraSingleScreen.js   # Vista individual de cámara
-│   │   └── AddCameraScreen.js      # Formulario para agregar cámara
-│   ├── utils/
-│   │   └── cameraStore.js          # Hook para manejo de cámaras
-│   └── components/                 # Componentes reutilizables
-├── assets/                         # Iconos e imágenes
+│   │   ├── HomeScreen.js        # Dashboard principal
+│   │   ├── CameraGridScreen.js  # Vista de grid
+│   │   ├── CameraSingleScreen.js # Vista individual
+│   │   └── AddCameraScreen.js   # Agregar/Editar cámara
+│   └── utils/
+│       └── cameraStore.js       # Estado global (Zustand-like)
+├── assets/                # Imágenes y recursos
 └── package.json
 ```
 
-## Instalación
+## 🌐 Pantallas
 
-```bash
-cd ip-cam-controlador
-npm install
+### Dashboard (Home)
+- Estadísticas de cámaras (total, online, offline)
+- Acciones rápidas (ver grid, escanear, agregar)
+- Lista de cámaras con indicadores de estado
+
+### Grid de Cámaras
+- Visualización 2-columnas
+- Thumbnails de cámaras
+- Estado online/offline
+- Navegación a vista individual
+
+### Vista Individual
+- Visualización fullscreen
+- Información detallada de la cámara
+- Controles (PTZ, zoom, etc.)
+- Edición de configuración
+
+### Agregar Cámara
+- Formulario de configuración
+- Detección automática de URL
+- Escaneo de red
+- Soporte para autenticación
+
+## 🔧 Configuración de Cámaras
+
+La app soporta cámaras IP con los siguientes protocolos:
+
+- **RTSP** - Real Time Streaming Protocol
+- **MJPEG** - Motion JPEG
+- **HTTP** - Streams HTTP estándar
+
+### Formato de URL
+
+```
+http://IP:PUERTO/video
+http://IP:PUERTO/stream
+rtsp://IP:PUERTO/live
 ```
 
-## Ejecución
+### Ejemplo de configuración
 
-```bash
-# Web
-npx expo start --web
-
-# Android
-npx expo start --android
-
-# iOS
-npx expo start --ios
+```javascript
+{
+  "name": "Cámara Principal",
+  "ip": "192.168.1.100",
+  "port": "8080",
+  "username": "admin",
+  "password": "12345",
+  "url": "http://192.168.1.100:8080/video"
+}
 ```
 
-## Funcionalidades
+## 🚀 Deployment
 
-### 1. Home Screen
-- Estadísticas de cámaras (total, en línea)
-- Botón rápido para ver grid
-- Escanear red automáticamente
-- Agregar cámara manualmente
-- Lista rápida de cámaras
+### Web
 
-### 2. Camera Grid
-- Grid de 2 columnas
-- Preview de cámara con placeholder
-- Indicador de estado (online/offline)
-- Pull-to-refresh para actualizar
-- Floating action button para agregar
-- Long press para eliminar
+La app se puede desplegar en cualquier servidor web estático:
 
-### 3. Camera Single View
-- Video en pantalla completa (16:9)
-- Información de la cámara (IP, puerto, usuario)
-- Indicador de estado
-- Controles: Mover, Zoom, Foto, Grabar
-- Modal para editar cámara
-- Opción para eliminar
+```bash
+# Generar build
+npx expo export --platform web
 
-### 4. Add Camera
-- Formulario con nombre, IP, puerto, credenciales
-- Auto-detección de URL
-- Escanear red para descubrir cámaras
-- Seleccionar cámaras descubiertas
-- Validación de campos requeridos
+# Copiar archivos a tu servidor
+rsync -av dist/ usuario@servidor:/var/www/html/
+```
 
-## Tecnologías
+### Móvil
 
-- React Native / Expo
-- React Navigation
-- AsyncStorage (persistencia local)
-- NetInfo (información de red)
-- FontAwesome5 (iconos)
+Para publicar en stores:
 
-## Notas
+```bash
+# Construir para Android
+npx expo prebuild
+npx expo run:android --variant release
 
-- Las cámaras demo son solo para pruebas (IPs ficticias)
-- La detección de cámaras requiere permisos de red
-- Las URLs de video deben ser accesibles desde la red
-- Para cámaras reales, se necesita configurar correctamente las credenciales
+# Construir para iOS (requiere Mac)
+npx expo prebuild
+npx expo run:ios --configuration Release
+```
 
-## URLs de Prueba
+## 📸 Compatibilidad de Cámaras
 
-- http://localhost:8082 (web local)
-- http://192.168.1.153:8082 (red local)
+La app es compatible con la mayoría de cámaras IP que exponen streams:
+
+- ✅ Hikvision
+- ✅ Dahua
+- ✅ TP-Link (Tapo)
+- ✅ Reolink
+- ✅ Foscam
+- ✅ Cámaras genéricas (con URL configurable)
+
+## 🔒 Seguridad
+
+- **Autenticación básica** - Soporta usuario/contraseña
+- **Almacenamiento local** - Las credenciales se guardan en el dispositivo
+- **Validación de URLs** - Verifica URLs de cámaras antes de guardar
+
+## 📝 Roadmap
+
+- [ ] Soporte para RTSP con autenticación
+- [ ] Grabación de video
+- [ ] Detección de movimiento
+- [ ] Notificaciones push
+- [ ] Soporte para cámaras ONVIF
+- [ ] Modo oscuro/claro
+- [ ] Widgets para home screen
+- [ ] Soporte para múltiples streams
+
+## 🤝 Contribución
+
+1. Fork el repositorio
+2. Crea tu feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit tus cambios (`git commit -m 'Add amazing feature'`)
+4. Push al branch (`git push origin feature/amazing-feature`)
+5. Abre un Pull Request
+
+## 📄 Licencia
+
+Este proyecto es de código abierto. Libre para uso personal y comercial.
+
+## 📞 Contacto
+
+- **GitHub:** [gabjesus15](https://github.com/gabjesus15)
+- **Proyecto:** [ip-cam-controlador](https://github.com/gabjesus15/ip-cam-controlador)
+
+---
+
+⭐ **Si te gusta este proyecto, dale una estrella en GitHub!**
