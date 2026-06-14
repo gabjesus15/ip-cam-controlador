@@ -1,0 +1,380 @@
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+  Alert,
+  ActivityIndicator,
+  Switch,
+} from 'react-native';
+import { FontAwesome5 } from '@expo/vector-icons';
+import useCameraStore from '../utils/cameraStore';
+
+const COLORS = {
+  bg: '#0a0a0a',
+  surface: '#141414',
+  border: '#222',
+  text: '#fff',
+  textSecondary: '#888',
+  accent: '#00d4ff',
+  online: '#00ff88',
+  offline: '#ff4444',
+};
+
+const AddCameraScreen = ({ route, navigation }) => {
+  const { addCamera, scanNetwork } = useCameraStore();
+  const { foundCameras } = route.params || {};
+  
+  const [name, setName] = useState('');
+  const [ip, setIp] = useState('');
+  const [port, setPort] = useState('8080');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('');
+  const [url, setUrl] = useState('');
+  const [autoDetect, setAutoDetect] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [discovered, setDiscovered] = useState(foundCameras || []);
+
+  const handleAutoDetect = () => {
+    if (ip && port) {
+      const detectedUrl = `http://${ip}:${port}/video`;
+      setUrl(detectedUrl);
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!name || !ip || !port) {
+      Alert.alert('Error', 'Por favor completa los campos requeridos');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const cameraUrl = url || `http://${ip}:${port}/video`;
+      await addCamera({
+        name,
+        ip,
+        port,
+        username,
+        password,
+        url: cameraUrl,
+      });
+      Alert.alert('Éxito', 'Cámara agregada correctamente', [
+        { text: 'OK', onPress: () => navigation.goBack() }
+      ]);
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo agregar la cámara');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleScan = async () => {
+    setScanning(true);
+    try {
+      const found = await scanNetwork();
+      setDiscovered(found);
+      if (found.length === 0) {
+        Alert.alert('Sin resultados', 'No se encontraron cámaras en la red');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo completar el escaneo');
+    } finally {
+      setScanning(false);
+    }
+  };
+
+  const selectDiscovered = (camera) => {
+    setName(camera.name);
+    setIp(camera.ip);
+    setPort(camera.port);
+    setUrl(camera.url);
+    setDiscovered([]);
+  };
+
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Discovered */}
+      {discovered.length > 0 && (
+        <View style={styles.discoveredSection}>
+          <Text style={styles.sectionTitle}>Cámaras Encontradas</Text>
+          {discovered.map((camera) => (
+            <TouchableOpacity
+              key={camera.id}
+              style={styles.discoveredItem}
+              onPress={() => selectDiscovered(camera)}
+            >
+              <View style={styles.discoveredIcon}>
+                <FontAwesome5 name="video" size={18} color={COLORS.accent} />
+              </View>
+              <View style={styles.discoveredInfo}>
+                <Text style={styles.discoveredName}>{camera.name}</Text>
+                <Text style={styles.discoveredIp}>{camera.ip}:{camera.port}</Text>
+              </View>
+              <FontAwesome5 name="check" size={14} color={COLORS.online} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+
+      {/* Form */}
+      <View style={styles.formSection}>
+        <Text style={styles.sectionTitle}>Agregar Manualmente</Text>
+        
+        <View style={styles.inputGroup}>
+          <Text style={styles.inputLabel}>Nombre *</Text>
+          <TextInput
+            style={styles.input}
+            value={name}
+            onChangeText={setName}
+            placeholder="Ej: Cámara Principal"
+            placeholderTextColor={COLORS.textSecondary}
+            color={COLORS.text}
+          />
+        </View>
+
+        <View style={styles.inputRow}>
+          <View style={[styles.inputGroup, { flex: 2, marginRight: 12 }]}>
+            <Text style={styles.inputLabel}>Dirección IP *</Text>
+            <TextInput
+              style={styles.input}
+              value={ip}
+              onChangeText={setIp}
+              placeholder="192.168.1.100"
+              placeholderTextColor={COLORS.textSecondary}
+              keyboardType="numeric"
+              autoCapitalize="none"
+              color={COLORS.text}
+            />
+          </View>
+          <View style={[styles.inputGroup, { flex: 1 }]}>
+            <Text style={styles.inputLabel}>Puerto *</Text>
+            <TextInput
+              style={styles.input}
+              value={port}
+              onChangeText={setPort}
+              placeholder="8080"
+              placeholderTextColor={COLORS.textSecondary}
+              keyboardType="numeric"
+              color={COLORS.text}
+            />
+          </View>
+        </View>
+
+        <View style={styles.inputRow}>
+          <View style={[styles.inputGroup, { flex: 1, marginRight: 12 }]}>
+            <Text style={styles.inputLabel}>Usuario</Text>
+            <TextInput
+              style={styles.input}
+              value={username}
+              onChangeText={setUsername}
+              placeholder="admin"
+              placeholderTextColor={COLORS.textSecondary}
+              autoCapitalize="none"
+              color={COLORS.text}
+            />
+          </View>
+          <View style={[styles.inputGroup, { flex: 1 }]}>
+            <Text style={styles.inputLabel}>Contraseña</Text>
+            <TextInput
+              style={styles.input}
+              value={password}
+              onChangeText={setPassword}
+              placeholder="******"
+              placeholderTextColor={COLORS.textSecondary}
+              secureTextEntry
+              color={COLORS.text}
+            />
+          </View>
+        </View>
+
+        <View style={styles.inputGroup}>
+          <View style={styles.urlHeader}>
+            <Text style={styles.inputLabel}>URL de Video</Text>
+            <Switch
+              value={autoDetect}
+              onValueChange={setAutoDetect}
+              trackColor={{ false: COLORS.border, true: COLORS.accent }}
+              thumbColor={autoDetect ? COLORS.text : COLORS.textSecondary}
+            />
+          </View>
+          <TextInput
+            style={styles.input}
+            value={url}
+            onChangeText={setUrl}
+            placeholder="http://192.168.1.100:8080/video"
+            placeholderTextColor={COLORS.textSecondary}
+            autoCapitalize="none"
+            editable={!autoDetect}
+            color={COLORS.text}
+          />
+          {autoDetect && (
+            <TouchableOpacity style={styles.detectBtn} onPress={handleAutoDetect}>
+              <FontAwesome5 name="magic" size={12} color={COLORS.accent} />
+              <Text style={styles.detectBtnText}>Auto-detectar URL</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+
+      {/* Actions */}
+      <View style={styles.actions}>
+        <TouchableOpacity style={styles.scanBtn} onPress={handleScan} disabled={scanning}>
+          {scanning ? (
+            <ActivityIndicator color={COLORS.accent} />
+          ) : (
+            <>
+              <FontAwesome5 name="search" size={14} color={COLORS.accent} />
+              <Text style={styles.scanBtnText}>Escanear Red</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.addBtn} onPress={handleAdd} disabled={loading}>
+          {loading ? (
+            <ActivityIndicator color={COLORS.bg} />
+          ) : (
+            <>
+              <FontAwesome5 name="plus" size={16} color={COLORS.bg} />
+              <Text style={styles.addBtnText}>Agregar Cámara</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.bg,
+  },
+  discoveredSection: {
+    padding: 16,
+    backgroundColor: COLORS.surface,
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+  },
+  discoveredItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.bg,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  discoveredIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: COLORS.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  discoveredInfo: {
+    flex: 1,
+  },
+  discoveredName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.text,
+  },
+  discoveredIp: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  formSection: {
+    padding: 16,
+    backgroundColor: COLORS.surface,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  inputRow: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  inputLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 14,
+    backgroundColor: COLORS.bg,
+  },
+  urlHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  detectBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    padding: 8,
+  },
+  detectBtnText: {
+    fontSize: 13,
+    color: COLORS.accent,
+    marginLeft: 8,
+  },
+  actions: {
+    padding: 16,
+  },
+  scanBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    backgroundColor: COLORS.surface,
+    marginBottom: 12,
+  },
+  scanBtnText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.accent,
+    marginLeft: 8,
+  },
+  addBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 14,
+    borderRadius: 10,
+    backgroundColor: COLORS.accent,
+  },
+  addBtnText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.bg,
+    marginLeft: 8,
+  },
+});
+
+export default AddCameraScreen;
